@@ -14,11 +14,22 @@ class ShowroomSetting extends Model
         return $setting?->value ?? $default;
     }
 
-    public static function set(string $key, mixed $value, string $type = 'text', string $group = 'general'): void
+    public static function set(string $key, mixed $value, ?string $type = null, ?string $group = null): void
     {
-        static::updateOrCreate(
-            ['key' => $key],
-            ['value' => $value, 'type' => $type, 'group' => $group]
-        );
+        $existing = static::where('key', $key)->first();
+
+        $attributes = ['value' => $value];
+        if ($type !== null) {
+            $attributes['type'] = $type;
+        } elseif (!$existing) {
+            $attributes['type'] = 'text';
+        }
+        if ($group !== null) {
+            $attributes['group'] = $group;
+        } elseif (!$existing) {
+            $attributes['group'] = 'general';
+        }
+
+        static::updateOrCreate(['key' => $key], $attributes);
     }
 }

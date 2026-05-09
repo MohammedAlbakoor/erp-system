@@ -203,7 +203,7 @@ class PublicCarController extends Controller
 
         $inquiry = CarInquiry::create($validated);
 
-        if ($validated['car_id']) {
+        if (!empty($validated['car_id'])) {
             Car::where('id', $validated['car_id'])->increment('inquiries_count');
         }
 

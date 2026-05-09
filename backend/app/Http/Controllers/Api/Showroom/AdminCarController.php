@@ -252,7 +252,7 @@ class AdminCarController extends Controller
             'name_ar' => 'nullable|string|max:100',
             'status' => 'boolean',
         ]);
-        $validated['slug'] = Str::slug($validated['name']);
+        $validated['slug'] = Str::slug($validated['name'] . '-' . uniqid());
         $brand = CarBrand::create($validated);
         return response()->json($brand, 201);
     }
@@ -319,7 +319,7 @@ class AdminCarController extends Controller
             'name_ar' => 'nullable|string|max:100',
             'icon' => 'nullable|string',
         ]);
-        $validated['slug'] = Str::slug($validated['name']);
+        $validated['slug'] = Str::slug($validated['name'] . '-' . uniqid());
         return response()->json(CarCategory::create($validated), 201);
     }
 
@@ -597,7 +597,7 @@ class AdminCarController extends Controller
             'meta_title' => 'nullable|string',
             'meta_description' => 'nullable|string',
         ]);
-        $validated['slug'] = Str::slug($validated['title']);
+        $validated['slug'] = Str::slug($validated['title'] . '-' . uniqid());
         $validated['author_id'] = auth()->id();
         return response()->json(CarBlogPost::create($validated), 201);
     }
