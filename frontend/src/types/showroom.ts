@@ -137,6 +137,7 @@ export interface CarInquiry {
   type: 'inquiry' | 'booking' | 'test_drive' | 'financing';
   message: string | null;
   status: string;
+  created_at: string;
   car?: Car;
 }
 

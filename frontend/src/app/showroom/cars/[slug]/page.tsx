@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { use } from 'react';
+import { showroomApi } from '@/lib/showroomApi';
+import type { Car, CarDetailResponse } from '@/types/showroom';
 
 const featureLabels: Record<string, string> = {
   sunroof: 'Sunroof', rear_camera: 'Rear Camera', parking_sensors: 'Parking Sensors',
@@ -22,59 +24,61 @@ export default function CarDetailPage({ params }: { params: Promise<{ slug: stri
   const [activeTab, setActiveTab] = useState('specs');
   const [showInquiryModal, setShowInquiryModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<CarDetailResponse | null>(null);
+  const [inquiryForm, setInquiryForm] = useState({ customer_name: '', phone: '', email: '', city: '', type: 'inquiry', message: '' });
+  const [inquirySubmitting, setInquirySubmitting] = useState(false);
+  const [inquirySuccess, setInquirySuccess] = useState(false);
 
-  const whatsappNumber = '966501234567';
+  useEffect(() => {
+    showroomApi.getCarDetail(slug)
+      .then(setData)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [slug]);
 
-  // Demo car data
-  const car = {
-    id: 1, brand_id: 1, model_id: 1, category_id: 1,
-    title: 'Toyota Camry 2024',
-    title_ar: 'تويوتا كامري 2024',
-    slug,
-    year: 2024,
-    price: 35000, old_price: 40000,
-    currency: 'USD',
-    status: 'available' as const,
-    condition: 'new' as const,
-    mileage: 0,
-    fuel_type: 'hybrid',
-    transmission: 'automatic',
-    engine_size: '2.5L',
-    cylinders: 4,
-    horsepower: '203 HP',
-    torque: '250 Nm',
-    drive_type: 'FWD',
-    fuel_consumption: '5.2 L/100km',
-    exterior_color: 'Pearl White',
-    interior_color: 'Black Leather',
-    doors: 4, seats: 5,
-    origin_country: 'Japan',
-    chassis_number: 'JTDKN3DU5A0****',
-    internal_number: 'CAR-1001',
-    description: 'This Toyota Camry 2024 is a stunning sedan that combines reliability with modern technology. Featuring a hybrid powertrain, premium interior, and advanced safety features, this car offers an exceptional driving experience. Fully inspected by our expert team with a comprehensive warranty.',
-    description_ar: 'تويوتا كامري 2024 سيارة سيدان مذهلة تجمع بين الموثوقية والتكنولوجيا الحديثة.',
-    features: ['sunroof', 'rear_camera', 'parking_sensors', 'touchscreen', 'bluetooth', 'navigation', 'apple_carplay', 'android_auto', 'leather_seats', 'cruise_control', 'keyless_entry', 'led_lights', 'alloy_wheels', 'abs', 'airbags', 'blind_spot_monitor', 'lane_assist', 'heated_seats', 'electric_seats', 'electric_mirrors', 'electric_windows'],
-    is_featured: true, is_offer: true, is_published: true, show_on_homepage: true, hide_price: false,
-    meta_title: null, meta_description: null,
-    views_count: 1250, inquiries_count: 35,
-    video_url: null, youtube_url: null,
-    created_at: '2024-01-15',
-    brand: { id: 1, name: 'Toyota', name_ar: 'تويوتا', slug: 'toyota', logo: null, status: true, sort_order: 0 },
-    car_model: { id: 1, brand_id: 1, name: 'Camry', name_ar: 'كامري', slug: 'camry', status: true },
-    category: { id: 1, name: 'Sedan', name_ar: 'سيدان', slug: 'sedan', icon: null, status: true, sort_order: 0 },
-    images: [],
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-amber-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-2">Car not found</h2>
+          <Link href="/showroom/cars" className="text-amber-400 hover:text-amber-300">Back to Cars</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const car = data.car;
+  const similarCars = data.similar_cars;
+  const settings = data.settings;
+  const whatsappNumber = settings?.whatsapp_number || '966501234567';
+  const price = Number(car.price);
+  const oldPrice = car.old_price ? Number(car.old_price) : null;
 
   const whatsappMsg = encodeURIComponent(
-    `مرحبا، أريد الاستفسار عن السيارة التالية:\n\nالسيارة: ${car.title}\nالسعر: $${car.price.toLocaleString()}\nرقم السيارة: ${car.internal_number}\nرابط السيارة: ${typeof window !== 'undefined' ? window.location.href : ''}\n\nهل السيارة ما زالت متوفرة؟`
+    `مرحبا، أريد الاستفسار عن السيارة التالية:\n\nالسيارة: ${car.title}\nالسعر: $${price.toLocaleString()}\nرقم السيارة: ${car.internal_number}\nرابط السيارة: ${typeof window !== 'undefined' ? window.location.href : ''}\n\nهل السيارة ما زالت متوفرة؟`
   );
 
-  const similarCars = [
-    { id: 2, title: 'Toyota Camry 2023', price: 30000, year: 2023, slug: 'car-2', mileage: 15000, transmission: 'automatic' },
-    { id: 3, title: 'Honda Accord 2024', price: 33000, year: 2024, slug: 'car-3', mileage: 0, transmission: 'automatic' },
-    { id: 4, title: 'Hyundai Sonata 2024', price: 28000, year: 2024, slug: 'car-4', mileage: 5000, transmission: 'automatic' },
-    { id: 5, title: 'Kia K5 2024', price: 27000, year: 2024, slug: 'car-5', mileage: 8000, transmission: 'automatic' },
-  ];
+  const handleInquirySubmit = async () => {
+    setInquirySubmitting(true);
+    try {
+      await showroomApi.submitInquiry({ ...inquiryForm, car_id: car.id });
+      setInquirySuccess(true);
+      setTimeout(() => { setShowInquiryModal(false); setInquirySuccess(false); }, 2000);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setInquirySubmitting(false);
+    }
+  };
 
   const tabs = [
     { id: 'specs', label: 'Technical Specs' },
@@ -115,9 +119,9 @@ export default function CarDetailPage({ params }: { params: Promise<{ slug: stri
                   <span className={`px-4 py-2 rounded-full text-sm font-bold ${car.condition === 'new' ? 'bg-emerald-500 text-white' : 'bg-blue-500 text-white'}`}>
                     {car.condition === 'new' ? 'New' : 'Used'}
                   </span>
-                  {car.is_offer && car.old_price && (
+                  {car.is_offer && oldPrice && (
                     <span className="px-4 py-2 rounded-full text-sm font-bold bg-red-500 text-white animate-pulse">
-                      {Math.round(((car.old_price - car.price) / car.old_price) * 100)}% OFF
+                      {Math.round(((oldPrice - price) / oldPrice) * 100)}% OFF
                     </span>
                   )}
                 </div>
@@ -252,16 +256,16 @@ export default function CarDetailPage({ params }: { params: Promise<{ slug: stri
                 <h1 className="text-2xl font-black text-white mb-4">{car.title}</h1>
 
                 <div className="mb-6">
-                  {car.old_price && (
+                  {oldPrice && (
                     <div className="flex items-center gap-3 mb-1">
-                      <span className="text-gray-500 line-through text-lg">${car.old_price.toLocaleString()}</span>
+                      <span className="text-gray-500 line-through text-lg">${oldPrice.toLocaleString()}</span>
                       <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">
-                        Save ${(car.old_price - car.price).toLocaleString()}
+                        Save ${(oldPrice - price).toLocaleString()}
                       </span>
                     </div>
                   )}
                   <span className="text-4xl font-black bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-transparent">
-                    ${car.price.toLocaleString()}
+                    ${price.toLocaleString()}
                   </span>
                 </div>
 
@@ -355,7 +359,7 @@ export default function CarDetailPage({ params }: { params: Promise<{ slug: stri
                 </div>
                 <div className="p-4">
                   <h3 className="text-white font-bold group-hover:text-amber-400 transition">{sc.title}</h3>
-                  <p className="text-amber-400 font-black text-lg mt-1">${sc.price.toLocaleString()}</p>
+                  <p className="text-amber-400 font-black text-lg mt-1">${Number(sc.price).toLocaleString()}</p>
                   <div className="flex gap-3 text-xs text-gray-400 mt-2">
                     <span>{sc.year}</span>
                     <span>{sc.mileage > 0 ? `${(sc.mileage / 1000).toFixed(0)}K km` : 'New'}</span>
@@ -393,7 +397,7 @@ export default function CarDetailPage({ params }: { params: Promise<{ slug: stri
               </div>
               <div className="bg-gray-800/50 rounded-xl p-4 mb-6">
                 <p className="text-amber-400 font-semibold">{car.title}</p>
-                <p className="text-gray-400 text-sm">Ref: {car.internal_number} | ${car.price.toLocaleString()}</p>
+                <p className="text-gray-400 text-sm">Ref: {car.internal_number} | ${price.toLocaleString()}</p>
               </div>
               <form className="space-y-4" onSubmit={e => { e.preventDefault(); setShowInquiryModal(false); window.open(`https://wa.me/${whatsappNumber}?text=${whatsappMsg}`, '_blank'); }}>
                 <input type="text" placeholder="Your Name *" required className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-amber-500" />

@@ -1,18 +1,53 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { showroomApi } from '@/lib/showroomApi';
 
 const fadeInUp = { initial: { opacity: 0, y: 40 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.6 } };
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', subject: '', message: '' });
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    showroomApi.getContact()
+      .then((data: { settings: Record<string, string> }) => setSettings(data.settings || {}))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Message sent successfully! We will contact you soon.');
-    setFormData({ name: '', phone: '', email: '', subject: '', message: '' });
+    setSubmitting(true);
+    try {
+      await showroomApi.submitContactMessage(formData);
+      setSubmitSuccess(true);
+      setFormData({ name: '', phone: '', email: '', subject: '', message: '' });
+      setTimeout(() => setSubmitSuccess(false), 3000);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to send message. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-amber-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const phone = settings['phone'] || '+966 50 123 4567';
+  const email = settings['email'] || 'info@autoelite.com';
+  const address = settings['address'] || 'King Fahd Road, Riyadh, Saudi Arabia';
+  const workingHours = settings['working_hours'] || 'Sat-Thu: 9AM-10PM';
 
   return (
     <div className="min-h-screen">
@@ -29,9 +64,9 @@ export default function ContactPage() {
       <section className="max-w-7xl mx-auto px-4 py-20">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
           {[
-            { icon: '📍', title: 'Visit Us', info: 'King Fahd Road, Riyadh, Saudi Arabia', extra: 'Sat-Thu: 9AM-10PM' },
-            { icon: '📞', title: 'Call Us', info: '+966 50 123 4567', extra: 'Available during working hours' },
-            { icon: '📧', title: 'Email Us', info: 'info@autoelite.com', extra: 'We respond within 24 hours' },
+            { icon: '📍', title: 'Visit Us', info: address, extra: workingHours },
+            { icon: '📞', title: 'Call Us', info: phone, extra: 'Available during working hours' },
+            { icon: '📧', title: 'Email Us', info: email, extra: 'We respond within 24 hours' },
           ].map((item, i) => (
             <motion.div key={i} {...fadeInUp} transition={{ delay: i * 0.1 }} className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center hover:border-amber-500/30 transition-all">
               <span className="text-5xl block mb-4">{item.icon}</span>
@@ -43,9 +78,13 @@ export default function ContactPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Form */}
           <motion.div {...fadeInUp}>
             <h2 className="text-3xl font-black text-white mb-8">Send Us a Message</h2>
+            {submitSuccess && (
+              <div className="bg-green-500/20 border border-green-500/50 text-green-400 p-4 rounded-xl mb-6">
+                Message sent successfully! We will contact you soon.
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Your Name *" required className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3.5 text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500" />
@@ -54,29 +93,21 @@ export default function ContactPage() {
               <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="Email Address" className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3.5 text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-amber-500" />
               <input type="text" value={formData.subject} onChange={e => setFormData({ ...formData, subject: e.target.value })} placeholder="Subject" className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3.5 text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-amber-500" />
               <textarea value={formData.message} onChange={e => setFormData({ ...formData, message: e.target.value })} placeholder="Your Message *" required rows={5} className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3.5 text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-amber-500 resize-none" />
-              <button type="submit" className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold py-4 rounded-xl transition-all hover:shadow-lg hover:shadow-amber-500/25">
-                Send Message
+              <button type="submit" disabled={submitting} className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold py-4 rounded-xl transition-all hover:shadow-lg hover:shadow-amber-500/25 disabled:opacity-50">
+                {submitting ? 'Sending...' : 'Send Message'}
               </button>
             </form>
           </motion.div>
 
-          {/* Map & Branches */}
           <motion.div {...fadeInUp} transition={{ delay: 0.2 }}>
-            <h2 className="text-3xl font-black text-white mb-8">Our Branches</h2>
-            <div className="space-y-4 mb-8">
-              {[
-                { name: 'Main Branch - Riyadh', address: 'King Fahd Road, Al-Olaya District', phone: '+966 50 123 4567', hours: 'Sat-Thu: 9AM-10PM' },
-                { name: 'Jeddah Branch', address: 'Prince Sultan Road, Al-Rawdah', phone: '+966 50 987 6543', hours: 'Sat-Thu: 10AM-9PM' },
-              ].map((branch, i) => (
-                <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-amber-500/30 transition-all">
-                  <h3 className="text-white font-bold mb-2">{branch.name}</h3>
-                  <div className="space-y-2 text-sm text-gray-400">
-                    <p className="flex items-center gap-2"><svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>{branch.address}</p>
-                    <p className="flex items-center gap-2"><svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>{branch.phone}</p>
-                    <p className="flex items-center gap-2"><svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>{branch.hours}</p>
-                  </div>
-                </div>
-              ))}
+            <h2 className="text-3xl font-black text-white mb-8">Our Location</h2>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-amber-500/30 transition-all mb-8">
+              <h3 className="text-white font-bold mb-2">{settings['showroom_name'] || 'AutoElite Motors'}</h3>
+              <div className="space-y-2 text-sm text-gray-400">
+                <p className="flex items-center gap-2"><svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>{address}</p>
+                <p className="flex items-center gap-2"><svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>{phone}</p>
+                <p className="flex items-center gap-2"><svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>{workingHours}</p>
+              </div>
             </div>
             <div className="bg-gray-800 rounded-2xl h-64 flex items-center justify-center text-gray-500">
               <div className="text-center">

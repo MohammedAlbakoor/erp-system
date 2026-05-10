@@ -1,11 +1,42 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { use } from 'react';
+import { showroomApi } from '@/lib/showroomApi';
+import type { CarBlogPost } from '@/types/showroom';
 
 export default function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
+  const [post, setPost] = useState<CarBlogPost | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    showroomApi.getBlogPost(slug)
+      .then((data: { post: CarBlogPost }) => setPost(data.post))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-amber-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-2">Article not found</h2>
+          <Link href="/showroom/blog" className="text-amber-400 hover:text-amber-300">Back to Blog</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -16,21 +47,17 @@ export default function BlogPostPage({ params }: { params: Promise<{ slug: strin
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             <Link href="/showroom/blog" className="hover:text-amber-400 transition">Blog</Link>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-            <span className="text-amber-400">{slug.replace(/-/g, ' ')}</span>
+            <span className="text-amber-400">{post.title}</span>
           </div>
         </div>
       </div>
 
       <article className="max-w-4xl mx-auto px-4 py-16">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <span className="text-amber-400 text-sm font-bold uppercase tracking-wider">Buying Guide</span>
-          <h1 className="text-4xl font-black text-white mt-3 mb-6">{slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</h1>
+          <span className="text-amber-400 text-sm font-bold uppercase tracking-wider">{post.category || 'Article'}</span>
+          <h1 className="text-4xl font-black text-white mt-3 mb-6">{post.title}</h1>
           <div className="flex items-center gap-4 text-sm text-gray-400 mb-10">
-            <span>January 15, 2024</span>
-            <span>|</span>
-            <span>5 min read</span>
-            <span>|</span>
-            <span>1,250 views</span>
+            <span>{new Date(post.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
           </div>
 
           <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl h-80 mb-10 flex items-center justify-center">
@@ -38,12 +65,7 @@ export default function BlogPostPage({ params }: { params: Promise<{ slug: strin
           </div>
 
           <div className="prose prose-invert prose-amber max-w-none">
-            <p className="text-gray-300 text-lg leading-relaxed mb-6">This is a comprehensive guide to help you make informed decisions when shopping for your next vehicle. Our expert team has compiled the most important factors to consider.</p>
-            <h2 className="text-2xl font-bold text-white mt-10 mb-4">Key Considerations</h2>
-            <p className="text-gray-400 leading-relaxed mb-4">When looking for the perfect car, there are several factors you should consider. Budget, fuel efficiency, safety ratings, and resale value are just a few of the important aspects to evaluate.</p>
-            <h2 className="text-2xl font-bold text-white mt-10 mb-4">Our Recommendations</h2>
-            <p className="text-gray-400 leading-relaxed mb-4">Based on our extensive experience in the automotive industry, we have compiled a list of the top vehicles in each category that offer the best value for money.</p>
-            <p className="text-gray-400 leading-relaxed">Contact us today to learn more about any of these vehicles or to schedule a test drive at our showroom.</p>
+            <div className="text-gray-300 leading-relaxed" dangerouslySetInnerHTML={{ __html: post.content || '' }} />
           </div>
 
           <div className="mt-12 pt-8 border-t border-gray-800">

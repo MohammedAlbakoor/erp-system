@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import type { Car, CarBrand, CarServiceType, CarTestimonial } from '@/types/showroom';
+import { showroomApi } from '@/lib/showroomApi';
+import type { Car, CarBrand, CarSlider, CarServiceType, CarTestimonial, HomepageData } from '@/types/showroom';
 
 const fadeInUp = {
   initial: { opacity: 0, y: 40 },
@@ -18,70 +19,6 @@ const stagger = {
   viewport: { once: true },
 };
 
-// Demo data used when API is not available
-const demoBrands: CarBrand[] = [
-  { id: 1, name: 'Toyota', name_ar: 'تويوتا', slug: 'toyota', logo: null, status: true, sort_order: 0, cars_count: 8 },
-  { id: 2, name: 'Hyundai', name_ar: 'هيونداي', slug: 'hyundai', logo: null, status: true, sort_order: 1, cars_count: 6 },
-  { id: 3, name: 'BMW', name_ar: 'بي ام دبليو', slug: 'bmw', logo: null, status: true, sort_order: 2, cars_count: 5 },
-  { id: 4, name: 'Mercedes', name_ar: 'مرسيدس', slug: 'mercedes', logo: null, status: true, sort_order: 3, cars_count: 4 },
-  { id: 5, name: 'Kia', name_ar: 'كيا', slug: 'kia', logo: null, status: true, sort_order: 4, cars_count: 6 },
-  { id: 6, name: 'Lexus', name_ar: 'لكزس', slug: 'lexus', logo: null, status: true, sort_order: 5, cars_count: 3 },
-  { id: 7, name: 'Audi', name_ar: 'أودي', slug: 'audi', logo: null, status: true, sort_order: 6, cars_count: 4 },
-  { id: 8, name: 'Porsche', name_ar: 'بورشه', slug: 'porsche', logo: null, status: true, sort_order: 7, cars_count: 3 },
-];
-
-const demoCars: Car[] = Array.from({ length: 8 }, (_, i) => ({
-  id: i + 1,
-  brand_id: i + 1,
-  model_id: i + 1,
-  category_id: 1,
-  title: ['Toyota Camry 2024', 'BMW X5 2023', 'Mercedes E-Class 2024', 'Hyundai Tucson 2024', 'Kia Sportage 2023', 'Lexus RX 2024', 'Audi Q7 2023', 'Porsche Cayenne 2024'][i],
-  title_ar: null,
-  slug: `car-${i + 1}`,
-  year: 2023 + (i % 2),
-  price: [25000, 65000, 55000, 32000, 28000, 52000, 70000, 95000][i],
-  old_price: i % 3 === 0 ? [25000, 65000, 55000, 32000, 28000, 52000, 70000, 95000][i] * 1.15 : null,
-  currency: 'USD',
-  status: 'available',
-  condition: i % 3 === 0 ? 'new' : 'used',
-  mileage: i % 3 === 0 ? 0 : (i + 1) * 12000,
-  fuel_type: i % 4 === 0 ? 'hybrid' : 'gasoline',
-  transmission: 'automatic',
-  engine_size: `${(i % 3) + 2}.0L`,
-  cylinders: [4, 6, 4, 4, 4, 6, 6, 8][i],
-  horsepower: `${150 + i * 40} HP`,
-  torque: null, drive_type: null, fuel_consumption: null,
-  exterior_color: ['White', 'Black', 'Silver', 'Blue', 'Red', 'Gray', 'White', 'Black'][i],
-  interior_color: 'Black',
-  doors: 4, seats: 5,
-  origin_country: ['Japan', 'Germany', 'Germany', 'South Korea', 'South Korea', 'Japan', 'Germany', 'Germany'][i],
-  chassis_number: null, internal_number: `CAR-${1000 + i}`,
-  description: null, description_ar: null,
-  features: ['sunroof', 'rear_camera', 'bluetooth', 'navigation', 'leather_seats'],
-  is_featured: true, is_offer: i % 3 === 0, is_published: true, show_on_homepage: true, hide_price: false,
-  meta_title: null, meta_description: null,
-  views_count: (i + 1) * 150, inquiries_count: (i + 1) * 5,
-  video_url: null, youtube_url: null,
-  created_at: new Date().toISOString(),
-  brand: demoBrands[i % demoBrands.length],
-  images: [],
-}));
-
-const demoServices: CarServiceType[] = [
-  { id: 1, title: 'Car Sales', title_ar: 'بيع السيارات', description: 'Wide selection of new and used vehicles', description_ar: 'تشكيلة واسعة من السيارات', icon: 'car', image: null, is_active: true },
-  { id: 2, title: 'Car Purchase', title_ar: 'شراء السيارات', description: 'We buy your car at the best price', description_ar: 'نشتري سيارتك بأفضل سعر', icon: 'handshake', image: null, is_active: true },
-  { id: 3, title: 'Financing', title_ar: 'التمويل والتقسيط', description: 'Flexible financing plans', description_ar: 'خطط تمويل مرنة', icon: 'calculator', image: null, is_active: true },
-  { id: 4, title: 'Car Inspection', title_ar: 'فحص السيارات', description: 'Comprehensive 200+ point inspection', description_ar: 'فحص شامل', icon: 'search', image: null, is_active: true },
-  { id: 5, title: 'Car Trade-In', title_ar: 'تبديل السيارات', description: 'Trade your current car easily', description_ar: 'بدّل سيارتك بسهولة', icon: 'exchange', image: null, is_active: true },
-  { id: 6, title: 'Car Shipping', title_ar: 'شحن السيارات', description: 'Safe and reliable car shipping', description_ar: 'شحن آمن وموثوق', icon: 'truck', image: null, is_active: true },
-];
-
-const demoTestimonials: CarTestimonial[] = [
-  { id: 1, customer_name: 'Ahmed Al-Hassan', customer_name_ar: 'أحمد الحسن', customer_image: null, rating: 5, content: 'Excellent service! Found my dream car at an amazing price.', content_ar: 'خدمة ممتازة! وجدت سيارة أحلامي بسعر مذهل.', is_published: true },
-  { id: 2, customer_name: 'Mohammed Al-Rashid', customer_name_ar: 'محمد الراشد', customer_image: null, rating: 5, content: 'Very professional team. The car was in perfect condition.', content_ar: 'فريق محترف جدًا. السيارة كانت بحالة ممتازة.', is_published: true },
-  { id: 3, customer_name: 'Sara Al-Mahmoud', customer_name_ar: 'سارة المحمود', customer_image: null, rating: 4, content: 'Flexible financing options made the purchase smooth.', content_ar: 'خيارات التمويل المرنة جعلت الشراء سلسًا.', is_published: true },
-];
-
 const serviceIcons: Record<string, React.ReactNode> = {
   car: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 17h.01M16 17h.01M3 11l1.5-5.5A2 2 0 016.44 4h11.12a2 2 0 011.94 1.5L21 11M3 11v6a1 1 0 001 1h1a1 1 0 001-1v-1h12v1a1 1 0 001 1h1a1 1 0 001-1v-6M3 11h18" />,
   handshake: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 11l5-5m0 0l5 5m-5-5v12" />,
@@ -95,10 +32,12 @@ const serviceIcons: Record<string, React.ReactNode> = {
   'file-text': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
 };
 
-function CarCard({ car, index }: { car: Car; index: number }) {
-  const whatsappNumber = '966501234567';
+function CarCard({ car, index, whatsappNum }: { car: Car; index: number; whatsappNum?: string }) {
+  const whatsappNumber = whatsappNum || '966501234567';
+  const price = Number(car.price);
+  const oldPrice = car.old_price ? Number(car.old_price) : null;
   const whatsappMsg = encodeURIComponent(
-    `مرحبا، أريد الاستفسار عن السيارة:\n${car.title}\nالسعر: $${car.price.toLocaleString()}\nرقم: ${car.internal_number || ''}`
+    `مرحبا، أريد الاستفسار عن السيارة:\n${car.title}\nالسعر: $${price.toLocaleString()}\nرقم: ${car.internal_number || ''}`
   );
 
   return (
@@ -121,9 +60,9 @@ function CarCard({ car, index }: { car: Car; index: number }) {
           <span className={`px-3 py-1 rounded-full text-xs font-bold ${car.condition === 'new' ? 'bg-emerald-500 text-white' : 'bg-blue-500 text-white'}`}>
             {car.condition === 'new' ? 'New' : 'Used'}
           </span>
-          {car.is_offer && car.old_price && (
+          {car.is_offer && oldPrice && (
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500 text-white animate-pulse">
-              {Math.round(((car.old_price - car.price) / car.old_price) * 100)}% OFF
+              {Math.round(((oldPrice - price) / oldPrice) * 100)}% OFF
             </span>
           )}
         </div>
@@ -152,9 +91,9 @@ function CarCard({ car, index }: { car: Car; index: number }) {
             <p className="text-amber-400 font-bold">Contact for price</p>
           ) : (
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-amber-400">${car.price.toLocaleString()}</span>
-              {car.old_price && (
-                <span className="text-sm text-gray-500 line-through">${car.old_price.toLocaleString()}</span>
+              <span className="text-2xl font-black text-amber-400">${price.toLocaleString()}</span>
+              {oldPrice && (
+                <span className="text-sm text-gray-500 line-through">${oldPrice.toLocaleString()}</span>
               )}
             </div>
           )}
@@ -220,22 +159,49 @@ export default function ShowroomHomePage() {
   const [searchPriceTo, setSearchPriceTo] = useState('');
   const [searchCondition, setSearchCondition] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<HomepageData | null>(null);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentSlide(s => (s + 1) % 3), 5000);
-    return () => clearInterval(timer);
+    showroomApi.getHomepage()
+      .then(setData)
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
-  const brands = demoBrands;
-  const cars = demoCars;
-  const services = demoServices;
-  const testimonials = demoTestimonials;
+  const sliders = data?.sliders || [];
+  const brands = data?.brands || [];
+  const featuredCars = data?.featured_cars || [];
+  const latestCars = data?.latest_cars || [];
+  const offerCars = data?.offer_cars || [];
+  const services = data?.services || [];
+  const testimonials = data?.testimonials || [];
+  const stats = data?.stats;
+  const settings = data?.settings || {};
+  const whatsappNumber = settings['whatsapp_number'] || '966501234567';
 
-  const heroSlides = [
-    { title: 'Premium Cars, Exceptional Experience', titleAr: 'سيارات فاخرة، تجربة استثنائية', desc: 'Discover our handpicked collection of premium vehicles', descAr: 'اكتشف مجموعتنا المختارة بعناية من السيارات الفاخرة' },
-    { title: 'Special Offers This Month', titleAr: 'عروض خاصة هذا الشهر', desc: 'Get up to 20% off on selected vehicles', descAr: 'احصل على خصم يصل إلى 20% على سيارات مختارة' },
-    { title: 'Financing Made Easy', titleAr: 'تمويل سهل وميسر', desc: 'Flexible financing options to suit your budget', descAr: 'خيارات تمويل مرنة تناسب ميزانيتك' },
-  ];
+  useEffect(() => {
+    const slideCount = sliders.length || 3;
+    const timer = setInterval(() => setCurrentSlide(s => (s + 1) % slideCount), 5000);
+    return () => clearInterval(timer);
+  }, [sliders.length]);
+
+  const heroSlides = sliders.length > 0
+    ? sliders.map(s => ({ title: s.title || '', titleAr: s.title_ar || '', desc: s.description || '', descAr: s.description_ar || '' }))
+    : [
+        { title: 'Premium Cars, Exceptional Experience', titleAr: 'سيارات فاخرة، تجربة استثنائية', desc: 'Discover our handpicked collection of premium vehicles', descAr: 'اكتشف مجموعتنا المختارة بعناية من السيارات الفاخرة' },
+      ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-400 text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -388,7 +354,7 @@ export default function ShowroomHomePage() {
           </Link>
         </motion.div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {cars.filter(c => c.is_featured).slice(0, 4).map((car, i) => (
+          {featuredCars.slice(0, 4).map((car, i) => (
             <CarCard key={car.id} car={car} index={i} />
           ))}
         </div>
@@ -407,7 +373,7 @@ export default function ShowroomHomePage() {
             </Link>
           </motion.div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {cars.slice(0, 8).map((car, i) => (
+            {latestCars.slice(0, 8).map((car, i) => (
               <CarCard key={car.id} car={car} index={i} />
             ))}
           </div>
@@ -415,6 +381,7 @@ export default function ShowroomHomePage() {
       </section>
 
       {/* Special Offers */}
+      {offerCars.length > 0 && (
       <section className="max-w-7xl mx-auto px-4 py-20">
         <motion.div {...fadeInUp} className="flex items-end justify-between mb-12">
           <div>
@@ -426,11 +393,12 @@ export default function ShowroomHomePage() {
           </Link>
         </motion.div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {cars.filter(c => c.is_offer).slice(0, 3).map((car, i) => (
+          {offerCars.slice(0, 3).map((car, i) => (
             <CarCard key={car.id} car={car} index={i} />
           ))}
         </div>
       </section>
+      )}
 
       {/* Services */}
       <section className="bg-gray-900/50 py-20">
@@ -537,10 +505,10 @@ export default function ShowroomHomePage() {
       <section className="max-w-7xl mx-auto px-4 py-20">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {[
-            { value: '500+', label: 'Cars Available', labelAr: 'سيارة متوفرة' },
-            { value: '2,000+', label: 'Cars Sold', labelAr: 'سيارة مباعة' },
-            { value: '5,000+', label: 'Happy Clients', labelAr: 'عميل سعيد' },
-            { value: '15+', label: 'Years Experience', labelAr: 'سنة خبرة' },
+            { value: stats ? `${stats.available_cars}+` : '0', label: 'Cars Available', labelAr: 'سيارة متوفرة' },
+            { value: stats ? `${stats.sold_cars}+` : '0', label: 'Cars Sold', labelAr: 'سيارة مباعة' },
+            { value: stats ? `${stats.total_cars}+` : '0', label: 'Total Cars', labelAr: 'إجمالي السيارات' },
+            { value: stats ? `${stats.brands_count}+` : '0', label: 'Brands', labelAr: 'علامة تجارية' },
           ].map((stat, i) => (
             <motion.div
               key={i}

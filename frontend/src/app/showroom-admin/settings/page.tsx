@@ -1,35 +1,76 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { adminApi } from '@/lib/showroomApi';
 
-export default function AdminPage() {
-  const pageName = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
-  const titles: Record<string, string> = {
-    brands: 'Brands & Models', inquiries: 'Inquiries Management', customers: 'Customer CRM',
-    sales: 'Sales & Reports', sliders: 'Sliders Management', testimonials: 'Testimonials',
-    services: 'Services Management', blog: 'Blog Posts', faqs: 'FAQ Management',
-    settings: 'Showroom Settings', messages: 'Contact Messages',
+const settingFields = [
+  { key: 'showroom_name', label: 'Showroom Name' },
+  { key: 'whatsapp_number', label: 'WhatsApp Number' },
+  { key: 'phone', label: 'Phone Number' },
+  { key: 'email', label: 'Email' },
+  { key: 'address', label: 'Address' },
+  { key: 'working_hours', label: 'Working Hours' },
+  { key: 'about_text', label: 'About Text', textarea: true },
+  { key: 'vision', label: 'Vision', textarea: true },
+  { key: 'mission', label: 'Mission', textarea: true },
+  { key: 'values', label: 'Values', textarea: true },
+  { key: 'facebook_url', label: 'Facebook URL' },
+  { key: 'instagram_url', label: 'Instagram URL' },
+  { key: 'twitter_url', label: 'Twitter URL' },
+  { key: 'google_maps_url', label: 'Google Maps URL' },
+  { key: 'currency', label: 'Currency' },
+  { key: 'meta_title', label: 'SEO Title' },
+  { key: 'meta_description', label: 'SEO Description', textarea: true },
+];
+
+export default function AdminSettingsPage() {
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    adminApi.getSettings()
+      .then((data: Record<string, string>) => setSettings(data || {}))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await adminApi.updateSettings(settings);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch { alert('Failed to save settings'); }
+    finally { setSaving(false); }
   };
+
+  if (loading) {
+    return <div className="flex justify-center py-12"><div className="w-10 h-10 border-4 border-amber-400 border-t-transparent rounded-full animate-spin" /></div>;
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-white">{titles[pageName || ''] || 'Management'}</h1>
-          <p className="text-gray-400 text-sm mt-1">Manage your showroom content</p>
-        </div>
-        <button className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold px-6 py-3 rounded-xl transition-all flex items-center gap-2">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          Add New
+        <h1 className="text-2xl font-black text-white">Showroom Settings</h1>
+        <button onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold px-6 py-3 rounded-xl transition-all disabled:opacity-50">
+          {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Settings'}
         </button>
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gray-900 border border-gray-800 rounded-2xl p-12 text-center">
-        <svg className="w-16 h-16 text-gray-700 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-        </svg>
-        <h3 className="text-xl font-bold text-gray-400 mb-2">Management Dashboard</h3>
-        <p className="text-gray-500">This section connects to the admin API endpoints for full CRUD operations. Data will be loaded from the backend API.</p>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-6">
+        {settingFields.map(field => (
+          <div key={field.key}>
+            <label className="text-gray-400 text-sm font-medium block mb-2">{field.label}</label>
+            {field.textarea ? (
+              <textarea value={settings[field.key] || ''} onChange={e => setSettings({ ...settings, [field.key]: e.target.value })} rows={3} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-amber-500 resize-none" />
+            ) : (
+              <input type="text" value={settings[field.key] || ''} onChange={e => setSettings({ ...settings, [field.key]: e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-amber-500" />
+            )}
+          </div>
+        ))}
       </motion.div>
     </div>
   );
