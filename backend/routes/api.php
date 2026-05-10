@@ -114,10 +114,12 @@ Route::middleware('auth:api')->group(function () {
     Route::delete('projects/{projectId}/tasks/{taskId}', [ProjectController::class, 'deleteTask']);
     Route::get('projects/{id}/kanban', [ProjectController::class, 'kanban']);
 
-    // ============================================
-    // Car Showroom Admin Routes
-    // ============================================
-    Route::prefix('showroom-admin')->group(function () {
+});
+
+// ============================================
+// Car Showroom Admin Routes
+// ============================================
+Route::prefix('showroom-admin')->group(function () {
         Route::get('dashboard', [AdminCarController::class, 'dashboard']);
 
         // Cars CRUD
@@ -200,9 +202,10 @@ Route::middleware('auth:api')->group(function () {
         Route::get('messages', [AdminCarController::class, 'messagesList']);
         Route::put('messages/{id}/read', [AdminCarController::class, 'messageRead']);
         Route::delete('messages/{id}', [AdminCarController::class, 'messageDestroy']);
-    });
+});
 
-    // Notifications
+// Notifications
+Route::middleware('auth:api')->group(function () {
     Route::get('notifications', function () {
         return response()->json(auth()->user()->notifications()->paginate(20));
     });
