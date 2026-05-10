@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             SupplierSeeder::class,
             EmployeeSeeder::class,
             ProjectSeeder::class,
+            CarShowroomSeeder::class,
         ]);
     }
 }
