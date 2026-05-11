@@ -4,14 +4,15 @@ import { FiSearch } from 'react-icons/fi';
 import { FaUserShield } from 'react-icons/fa';
 import { auditLog, users } from '../../data/mockData';
 
-const actionColors = {
-  create: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  update: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  delete: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  view: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400',
-  login: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  payment: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-};
+function getActionColor(action) {
+  const a = action.toLowerCase();
+  if (a.includes('created') || a.includes('scheduled')) return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+  if (a.includes('updated')) return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+  if (a.includes('cancelled') || a.includes('deleted')) return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+  if (a.includes('viewed')) return 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400';
+  if (a.includes('payment') || a.includes('recorded')) return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+  return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+}
 
 export default function AuditLog() {
   const [search, setSearch] = useState('');
@@ -20,7 +21,7 @@ export default function AuditLog() {
   const actions = ['All', ...new Set(auditLog.map((l) => l.action))];
   const filtered = auditLog.filter((log) => {
     const user = users.find((u) => u.id === log.userId);
-    const matchSearch = !search || user?.name.toLowerCase().includes(search.toLowerCase()) || log.details.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || user?.name.toLowerCase().includes(search.toLowerCase()) || log.target.toLowerCase().includes(search.toLowerCase());
     const matchAction = actionFilter === 'All' || log.action === actionFilter;
     return matchSearch && matchAction;
   });
@@ -54,13 +55,12 @@ export default function AuditLog() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-semibold text-slate-800 dark:text-white">{user?.name}</span>
-                    <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${actionColors[log.action]}`}>{log.action}</span>
+                    <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${getActionColor(log.action)}`}>{log.action}</span>
                   </div>
-                  <p className="text-sm text-slate-600 dark:text-slate-300 mt-0.5">{log.details}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 mt-0.5">{log.target}</p>
                   <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
-                    <span>{log.date} {log.time}</span>
+                    <span>{log.timestamp}</span>
                     <span>IP: {log.ip}</span>
-                    <span className="capitalize">{log.module}</span>
                   </div>
                 </div>
               </div>

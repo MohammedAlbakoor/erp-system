@@ -48,7 +48,7 @@ export default function Settings() {
           <div className="grid sm:grid-cols-2 gap-5">
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2 flex items-center gap-2"><FiClock size={14} /> Working Hours</label>
-              <input type="text" defaultValue={clinicInfo.hours} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+              <input type="text" defaultValue={clinicInfo.workingHours.weekdays} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
             </div>
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2 flex items-center gap-2"><FiGlobe size={14} /> Language</label>
